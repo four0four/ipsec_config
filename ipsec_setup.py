@@ -190,7 +190,7 @@ def main():
 	elif new_cfg == 0:
 		parser.read(config_name)
 		current_target = parser.get('local','target')
-		
+
 		#cloud
 		cloud_int_ip = parser.get('cloud','internal-ip')
 		try: #separate ip and netmask
@@ -222,6 +222,20 @@ def main():
 		
 		ipsec_auth = parser.get('global','authby')
 		
+		if parser.get('cloud','cisco-asa').lower() == "yes" or parser.get('client','cisco-asa').lower() == "yes":
+			ipsec_auth = "psk" #force this
+			if parser.has_option('global','ike-method'):
+				ipsec_ike = parser.get('global','ike-method')
+			else:
+				ipsec_ike = "3des-sha1-modp1024" #triple DES encryption, SHA1 hash, group2 DH
+			if parser.has_option('global','keylife'):
+				ipsec_keylife = parser.get('global','keylife')
+			else:
+				ipsec_keylife = "86400s"
+			ipsec_pfs = "no"
+			ipsec_keyexchange = "ike"
+			ipsec_phase2 = "esp"
+			
 		if ipsec_auth.lower() == "rsa":
 			#cloud = ipsec "left", client = ipsec "right"
 			try:
@@ -326,10 +340,15 @@ def main():
 		ipsec_conf.write("\toe=off\n")
 		ipsec_conf.write("\tprotostack=klips\n")
 		ipsec_conf.write("\tinterfaces=\"ipsec0="+ipsec_interface+"\"\n")
+		
 		ipsec_conf.write("\n\nconn %default\n")
 		ipsec_conf.write("\tauthby="+ipsec_auth+"\n")
-		#about here
-
+		ipsec_conf.write("\tike="+ipsec_ike+"\n")
+		ipsec_conf.write("\tkeylife="+ipsec_keylife+"\n")
+		ipsec_conf.write("\tpfs="+ipsec_pfs+"\n")
+		ipsec_conf.write("\tkeyexchange="+ipsec_keyexchange+"\n")
+		ipsec_conf.write("\tphase2="+ipsec_phase2+"\n")
+		
 		ipsec_conf.write("\nconn subnet-extrusion\n")
 		ipsec_conf.write("\tleftsubnet="+cloud_int_subnet+"\n")
 		ipsec_conf.write("\tleftsourceip="+cloud_int_ip+"\n")
