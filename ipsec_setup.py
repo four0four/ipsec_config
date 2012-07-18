@@ -235,6 +235,8 @@ def main():
 		if parser.has_option('global','ipsec-interface'):
 			ipsec_interface = parser.get('global','ipsec-interface')
 		else:
+			ipsec_interface = "automatic"
+		if ipsec_interface.lower() == "automatic":
 			interfaces = netifaces.interfaces()
 			for interface in interfaces:
 				try:
@@ -247,7 +249,8 @@ def main():
 						ipsec_interface = interface
 						break
 				except ValueError:
-					print interface + " is unavailable. [nonfatal]"
+					print "[info]: " + interface + " is unavailable"
+		
 		add_to_config(config_setup,"interfaces",ipsec_interface)	
 			
 		if parser.has_option('global','version'):	
