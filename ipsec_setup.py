@@ -212,30 +212,49 @@ def main():
 		client_ext_ip = parser.get('client','external-ip')
 		
 		#globals
-		ipsec_interface = parser.get('global','ipsec-interface')
-
-		ipsec_interface = parser.get('global','ipsec-interface')
-		ipsec_version = parser.get('global','version')
-		ipsec_protostack = parser.get('global','protostack')
-		ipsec_oe = parser.get('global','oe')
-		ipsec_type = parser.get('global','type')
-		
-		ipsec_auth = parser.get('global','authby')
-		
-		if parser.get('cloud','cisco-asa').lower() == "yes" or parser.get('client','cisco-asa').lower() == "yes":
-			ipsec_auth = "psk" #force this
-			if parser.has_option('global','ike-method'):
-				ipsec_ike = parser.get('global','ike-method')
-			else:
-				ipsec_ike = "3des-sha1-modp1024" #triple DES encryption, SHA1 hash, group2 DH
-			if parser.has_option('global','keylife'):
-				ipsec_keylife = parser.get('global','keylife')
-			else:
-				ipsec_keylife = "86400s"
-			ipsec_pfs = "no"
-			ipsec_keyexchange = "ike"
-			ipsec_phase2 = "esp"
+		if parser.has_option('global','ipsec-interface'):
+			ipsec_interface = parser.get('global','ipsec-interface')
+		else:
+			ipsec_interface = "automatic"
 			
+		if parser.has_option('global','version'):	
+			ipsec_version = parser.get('global','version')
+		else:
+			ipsec_version = "2.0"
+			
+		if parser.has_option('global','protostack'):
+			ipsec_protostack = parser.get('global','protostack')
+		else:
+			ipsec_protostack = "klips"
+			
+		if parser.has_option('global','opportunistic-encryption'):
+			ipsec_oe = parser.get('global','opportunistic-encryption')
+		else:
+			ipsec_oe = "disabled"
+			
+		if parser.has_option('global','type'):	
+			ipsec_type = parser.get('global','type')
+		else:
+			ipsec_type = "tunnel"
+		
+		ipsec_auth = parser.get('global','authby') #they can't avoid this one.
+		
+		#Cisco ASA endpoint support - Force allows encryption methods
+		if parser.has_option('cloud','cisco-asa') or parser.has_option('client','cisco-asa'):
+			if parser.get('cloud','cisco-asa').lower() == "yes" or parser.get('client','cisco-asa').lower() == "yes":
+				ipsec_auth = "psk" #force this
+				if parser.has_option('global','ike-method'):
+					ipsec_ike = parser.get('global','ike-method')
+				else:
+					ipsec_ike = "3des-sha1-modp1024" #triple DES encryption, SHA1 hash, group2 DH
+				if parser.has_option('global','keylife'):
+					ipsec_keylife = parser.get('global','keylife')
+				else:
+					ipsec_keylife = "86400s"
+				ipsec_pfs = "no"
+				ipsec_keyexchange = "ike"
+				ipsec_phase2 = "esp"
+				
 		if ipsec_auth.lower() == "rsa":
 			#cloud = ipsec "left", client = ipsec "right"
 			try:
