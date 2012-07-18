@@ -62,7 +62,7 @@ def subnet_from_netmask(netmask, ip):
 	return subnet
 
 def add_to_config(heading, option, value):
-	heading.write("\t"+option+"="+value)
+	heading.write("\t"+option+"="+value+"\n")
 	
 def guide_human(newcfg):
 	answer = ""
