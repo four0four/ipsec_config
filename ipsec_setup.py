@@ -240,8 +240,8 @@ def main():
 		ipsec_auth = parser.get('global','authby') #they can't avoid this one.
 		
 		#Cisco ASA endpoint support - Force allows encryption methods
-		if parser.has_option('cloud','cisco-asa') or parser.has_option('client','cisco-asa'):
-			if parser.get('cloud','cisco-asa').lower() == "yes" or parser.get('client','cisco-asa').lower() == "yes":
+		if parser.has_option('cloud','cisco-asa'):
+			if parser.get('cloud','cisco-asa').lower() == "yes":
 				ipsec_auth = "psk" #force this
 				if parser.has_option('global','ike-method'):
 					ipsec_ike = parser.get('global','ike-method')
@@ -254,7 +254,20 @@ def main():
 				ipsec_pfs = "no"
 				ipsec_keyexchange = "ike"
 				ipsec_phase2 = "esp"
-				
+		if parser.has_option('client','cisco-asa'):
+			if parser.get('client','cisco-asa').lower() == "yes":
+				ipsec_auth = "psk" #force this
+				if parser.has_option('global','ike-method'):
+					ipsec_ike = parser.get('global','ike-method')
+				else:
+					ipsec_ike = "3des-sha1-modp1024" #triple DES encryption, SHA1 hash, group2 DH
+				if parser.has_option('global','keylife'):
+					ipsec_keylife = parser.get('global','keylife')
+				else:
+					ipsec_keylife = "86400s"
+				ipsec_pfs = "no"
+				ipsec_keyexchange = "ike"
+				ipsec_phase2 = "esp"		
 		if ipsec_auth.lower() == "rsa":
 			#cloud = ipsec "left", client = ipsec "right"
 			try:
