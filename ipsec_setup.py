@@ -61,6 +61,9 @@ def subnet_from_netmask(netmask, ip):
 
 	return subnet
 
+def add_to_config(heading, option, value):
+	heading += "\t"+option+"="+value
+	
 def guide_human(newcfg):
 	answer = ""
 	
@@ -158,6 +161,10 @@ def main():
 	rng_started = 0
 	pubkey = ""
 	
+	config_setup = "config setup\n"
+	conn_default = "conn %default\n"
+	conn_subnet_extrusion = "conn subnet-extrusion\n"
+	
 	parser = ConfigParser.RawConfigParser()
 	time = datetime.date.today()
 
@@ -193,6 +200,7 @@ def main():
 
 		#cloud
 		cloud_int_ip = parser.get('cloud','internal-ip')
+		
 		try: #separate ip and netmask
 			cloud_int_nm = parser.get('cloud','internal-netmask')
 		except ConfigParser.NoOptionError: #a.b.c.d/xx
@@ -200,6 +208,10 @@ def main():
 			cloud_int_ip = ".".join(map(str,split_combined(cloud_int_ip)[0]))
 		cloud_int_subnet = subnet_from_netmask(cloud_int_nm,cloud_int_ip)
 		cloud_ext_ip = parser.get('cloud','external-ip')
+		#add what we've got to the config buffer
+		add_to_config(conn_subnet_extrusion,"leftsourceip",cloud_int_ip)
+		add_to_config(conn_subnet_extrusion,"leftsubnet",cloud_int_subnet)
+		add_to_config(conn_subnet_extrusion,"left",cloud_ext_ip)
 		
 		#client
 		client_int_ip = parser.get('client','internal-ip')
@@ -210,64 +222,57 @@ def main():
 			client_int_ip = ".".join(map(str,split_combined(client_int_ip)[0]))
 		client_int_subnet = subnet_from_netmask(client_int_nm,client_int_ip)
 		client_ext_ip = parser.get('client','external-ip')
+		#add what we've got to the config buffer
+		add_to_config(conn_subnet_extrusion,"rightsourceip",client_int_ip)
+		add_to_config(conn_subnet_extrusion,"rightsubnet",client_int_subnet)
+		add_to_config(conn_subnet_extrusion,"right",client_exp_ip)
 		
 		#globals
 		if parser.has_option('global','ipsec-interface'):
 			ipsec_interface = parser.get('global','ipsec-interface')
 		else:
-			ipsec_interface = "automatic"
+			interfaces = netifaces.interfaces()
+			for interface in interfaces:
+				try:
+					iface_ip = netifaces.ifaddresses(interface)[2][0]['addr']
+					#Could be faster, but this avoids some collisions
+					if ((iface_ip == client_ext_ip) and (current_target.lower() == "client") and (interface.find("ipsec") == -1)):
+						ipsec_interface = interface
+						break
+					elif ((iface_ip == cloud_ext_ip) and (current_target.lower() == "cloud") and (interface.find("ipsec") == -1)):
+						ipsec_interface = interface
+						break
+				except ValueError:
+					print interface + " is unavailable. [nonfatal]"
+		add_to_config(config_setup,"interfaces",ipsec_interface)	
 			
 		if parser.has_option('global','version'):	
 			ipsec_version = parser.get('global','version')
 		else:
-			ipsec_version = "2.0"
+			ipsec_version = "2.0" #we're just going to write this first, so save it.
 			
 		if parser.has_option('global','protostack'):
 			ipsec_protostack = parser.get('global','protostack')
 		else:
 			ipsec_protostack = "klips"
-			
+		add_to_config(config_setup,"protostack",ipsec_protostack)
+		
 		if parser.has_option('global','opportunistic-encryption'):
-			ipsec_oe = parser.get('global','opportunistic-encryption')
+			if parser.get('global','opportunistic-encryption').lower() == "enabled":
+				ipsec_oe = "on"
+			else:
+				ipsec_oe = "off"			
 		else:
-			ipsec_oe = "disabled"
+			ipsec_oe = "off"
+		add_to_config(config_setup,"oe",ipsec_oe)
 			
 		if parser.has_option('global','type'):	
 			ipsec_type = parser.get('global','type')
 		else:
 			ipsec_type = "tunnel"
+		add_to_config(conn_subnet_extrusion,"type",ipsec_type)
 		
 		ipsec_auth = parser.get('global','authby') #they can't avoid this one.
-		
-		#Cisco ASA endpoint support - Force allows encryption methods
-		if parser.has_option('cloud','cisco-asa'):
-			if parser.get('cloud','cisco-asa').lower() == "yes":
-				ipsec_auth = "psk" #force this
-				if parser.has_option('global','ike-method'):
-					ipsec_ike = parser.get('global','ike-method')
-				else:
-					ipsec_ike = "3des-sha1-modp1024" #triple DES encryption, SHA1 hash, group2 DH
-				if parser.has_option('global','keylife'):
-					ipsec_keylife = parser.get('global','keylife')
-				else:
-					ipsec_keylife = "86400s"
-				ipsec_pfs = "no"
-				ipsec_keyexchange = "ike"
-				ipsec_phase2 = "esp"
-		if parser.has_option('client','cisco-asa'):
-			if parser.get('client','cisco-asa').lower() == "yes":
-				ipsec_auth = "psk" #force this
-				if parser.has_option('global','ike-method'):
-					ipsec_ike = parser.get('global','ike-method')
-				else:
-					ipsec_ike = "3des-sha1-modp1024" #triple DES encryption, SHA1 hash, group2 DH
-				if parser.has_option('global','keylife'):
-					ipsec_keylife = parser.get('global','keylife')
-				else:
-					ipsec_keylife = "86400s"
-				ipsec_pfs = "no"
-				ipsec_keyexchange = "ike"
-				ipsec_phase2 = "esp"		
 		if ipsec_auth.lower() == "rsa":
 			#cloud = ipsec "left", client = ipsec "right"
 			try:
@@ -338,61 +343,109 @@ def main():
 			if rng_started == 1:
 				os.system("service rng-tools stop")
 				print ""
-				
+			#After that mess, let's write the things
+			add_to_config(cconn_default,"authby",ipsec_auth)
+			add_to_config(conn_subnet_extrusion,"leftrsasigkey",cloud_rsa_key)
+			add_to_config(conn_subnet-extrustion,"rightrsasigkey",client_rsa_key)(
 		elif ipsec_auth.lower() == "psk":
 			ipsec_psk = parser.get('global','psk-secret')
 			ipsec_auth = "secret"
 			secrets = open(ipsec_secrets_file,'w')
 			secrets.write(cloud_ext_ip + " " + client_ext_ip + " : PSK \"" + ipsec_psk+"\"\n")
-			secrets.close()			
+			secrets.close()	
+			add_to_config(conn_default,"authby",ipsec_auth)
 		else:
 			print ipsec_auth + " is not a valid method of authentication."
 			quit()
-		if ipsec_interface.lower() == "automatic":
-			interfaces = netifaces.interfaces()
-			for interface in interfaces:
-				try:
-					iface_ip = netifaces.ifaddresses(interface)[2][0]['addr']
-					#Could be faster, but this avoids some collisions
-					if ((iface_ip == client_ext_ip) and (current_target.lower() == "client") and (interface.find("ipsec") == -1)):
-						ipsec_interface = interface
-						break
-					elif ((iface_ip == cloud_ext_ip) and (current_target.lower() == "cloud") and (interface.find("ipsec") == -1)):
-						ipsec_interface = interface
-						break
-				except ValueError:
-					print interface + " is unavailable."			
+			
+		#Cisco ASA endpoint support - Force allows encryption methods
+		if parser.has_option('cloud','cisco-asa'):
+			if parser.get('cloud','cisco-asa').lower() == "yes":
+				ipsec_auth = "psk" #force this
+				if parser.has_option('global','ike-method'):
+					ipsec_ike = parser.get('global','ike-method')
+				else:
+					ipsec_ike = "3des-sha1-modp1024" #triple DES encryption, SHA1 hash, group2 DH
+				add_to_config(conn_default,"ike",ipsec_ike)	
+				
+				if parser.has_option('global','phase2algorithm'):
+					ipsec_phase2alg = parser.get('global','phase2algorithm')
+				else
+					ipsec_phase2alg = "3des-sha1"
+				add_to_config(ipsec_phase2alg,"phase2alg",ipsec_ike)	
+										
+				if parser.has_option('global','keylife'):
+					ipsec_keylife = parser.get('global','keylife')
+				else:
+					ipsec_keylife = "86400s"
+				add_to_config(conn_default,"keylife",ipsec_keylife)
+				
+				#always!
+				add_to_config(conn_default,"pfs","no")
+				add_to_config(conn_default,"keyexchange","ike")
+				add_to_config(conn_default,"phase2","esp")
+				
+		if parser.has_option('client','cisco-asa'):
+			if parser.get('client','cisco-asa').lower() == "yes":
+				ipsec_auth = "psk" #force this
+				if parser.has_option('global','ike-method'):
+					ipsec_ike = parser.get('global','ike-method')
+				else:
+					ipsec_ike = "3des-sha1-modp1024" #triple DES encryption, SHA1 hash, group2 DH
+				add_to_config(conn_default,"ike",ipsec_ike)	
+					
+				if parser.has_option('global','phase2algorithm'):
+					ipsec_phase2alg = parser.get('global','phase2algorithm')
+				else
+					ipsec_phase2alg = "3des-sha1"
+				add_to_config(ipsec_phase2alg,"phase2alg",ipsec_ike)	
+					
+				if parser.has_option('global','keylife'):
+					ipsec_keylife = parser.get('global','keylife')
+				else:
+					ipsec_keylife = "86400s"
+				add_to_config(conn_default,"keylife",ipsec_keylife)
+					
+				#always!
+				add_to_config(conn_default,"pfs","no")
+				add_to_config(conn_default,"keyexchange","ike")
+				add_to_config(conn_default,"phase2","esp")
 		
+		add_to_config(conn_subnet_extrusion,"auto","start")
 		print "Writing "+ipsec_config_file
 		ipsec_conf = open(ipsec_config_file,'w')
 		#ipsec_conf.write("#\t---Automatically generated by ipsec_setup---\t#	\n\n")
 		#replace between comments with stuff from global cfg
-		ipsec_conf.write("version 2.0\n")
+		ipsec_conf.write("version "+ipsec_version+"\n")
 		ipsec_conf.write("config setup\n")
-		ipsec_conf.write("\toe=off\n")
-		ipsec_conf.write("\tprotostack=klips\n")
-		ipsec_conf.write("\tinterfaces=\"ipsec0="+ipsec_interface+"\"\n")
+		ipsec_conf.write(config_setup+"\n")
+		# ipsec_conf.write("\toe=off\n")
+		# ipsec_conf.write("\tprotostack=klips\n")
+		# ipsec_conf.write("\tinterfaces=\"ipsec0="+ipsec_interface+"\"\n")
 		
 		ipsec_conf.write("\n\nconn %default\n")
-		ipsec_conf.write("\tauthby="+ipsec_auth+"\n")
-		ipsec_conf.write("\tike="+ipsec_ike+"\n")
-		ipsec_conf.write("\tkeylife="+ipsec_keylife+"\n")
-		ipsec_conf.write("\tpfs="+ipsec_pfs+"\n")
-		ipsec_conf.write("\tkeyexchange="+ipsec_keyexchange+"\n")
-		ipsec_conf.write("\tphase2="+ipsec_phase2+"\n")
+		ipsec_conf.write(conn_default)
+		# ipsec_conf.write("\tauthby="+ipsec_auth+"\n")
+		# ipsec_conf.write("\tike="+ipsec_ike+"\n")
+		# ipsec_conf.write("\tkeylife="+ipsec_keylife+"\n")
+		# ipsec_conf.write("\tpfs="+ipsec_pfs+"\n")
+		# ipsec_conf.write("\tkeyexchange="+ipsec_keyexchange+"\n")
+		# ipsec_conf.write("\tphase2="+ipsec_phase2+"\n")
+		# ipsec_conf.write("\tphase2alg="+ipsec_phase2alg+"\n")
 		
 		ipsec_conf.write("\nconn subnet-extrusion\n")
-		ipsec_conf.write("\tleftsubnet="+cloud_int_subnet+"\n")
-		ipsec_conf.write("\tleftsourceip="+cloud_int_ip+"\n")
-		ipsec_conf.write("\trightsubnet="+client_int_subnet+"\n")
-		ipsec_conf.write("\trightsourceip="+client_int_ip+"\n")
-		ipsec_conf.write("\tleft="+cloud_ext_ip+"\n")
-		ipsec_conf.write("\tright="+client_ext_ip+"\n")
-		ipsec_conf.write("\ttype=tunnel\n")
-		if ipsec_auth.lower() == "rsa":
-			ipsec_conf.write("\tleftrsasigkey="+cloud_rsa_key+"\n")
-			ipsec_conf.write("\trightrsasigkey="+client_rsa_key+"\n")
-		ipsec_conf.write("\tauto=start\n")	
+		ipsec_conf.write(conn_subnet-extrustion)
+		# ipsec_conf.write("\tleftsubnet="+cloud_int_subnet+"\n")
+		# ipsec_conf.write("\tleftsourceip="+cloud_int_ip+"\n")
+		# ipsec_conf.write("\trightsubnet="+client_int_subnet+"\n")
+		# ipsec_conf.write("\trightsourceip="+client_int_ip+"\n")
+		# ipsec_conf.write("\tleft="+cloud_ext_ip+"\n")
+		# ipsec_conf.write("\tright="+client_ext_ip+"\n")
+		# ipsec_conf.write("\ttype=tunnel\n")
+		# if ipsec_auth.lower() == "rsa":
+			# ipsec_conf.write("\tleftrsasigkey="+cloud_rsa_key+"\n")
+			# ipsec_conf.write("\trightrsasigkey="+client_rsa_key+"\n")
+		# ipsec_conf.write("\tauto=start\n")	
 		ipsec_conf.write("\n#\t---Automatically generated by "+sys.argv[0].lstrip("./")+" on "+time.isoformat()+"---\t#\n")
 		
 		ipsec_conf.close()
