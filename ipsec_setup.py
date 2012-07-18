@@ -62,8 +62,7 @@ def subnet_from_netmask(netmask, ip):
 	return subnet
 
 def add_to_config(heading, option, value):
-	heading += "\t"+option+"="+value
-	print heading
+	heading.write("\t"+option+"="+value)
 	
 def guide_human(newcfg):
 	answer = ""
@@ -416,15 +415,15 @@ def main():
 		#replace between comments with stuff from global cfg
 		ipsec_conf.write("version "+ipsec_version+"\n")
 		#ipsec_conf.write("config setup\n")
-		ipsec_conf.write(config_setup+"\n")
+		ipsec_conf.write(config_setup.read()+"\n")
 		# ipsec_conf.write("\toe=off\n")
 		# ipsec_conf.write("\tprotostack=klips\n")
 		# ipsec_conf.write("\tinterfaces=\"ipsec0="+ipsec_interface+"\"\n")
 		
 		#ipsec_conf.write("\n\nconn %default\n")
-		ipsec_conf.write(conn_default)
+		ipsec_conf.write(conn_default.read())
 		# ipsec_conf.write("\tauthby="+ipsec_auth+"\n")
-		# ipsec_conf.write("\tike="+ipsec_ike+"\n")
+		# ipsec_conf.write("\tike="+ipsec_ike+"\n")z
 		# ipsec_conf.write("\tkeylife="+ipsec_keylife+"\n")
 		# ipsec_conf.write("\tpfs="+ipsec_pfs+"\n")
 		# ipsec_conf.write("\tkeyexchange="+ipsec_keyexchange+"\n")
@@ -432,7 +431,7 @@ def main():
 		# ipsec_conf.write("\tphase2alg="+ipsec_phase2alg+"\n")
 		
 		#ipsec_conf.write("\nconn subnet-extrusion\n")
-		ipsec_conf.write(conn_subnet_extrusion)
+		ipsec_conf.write(conn_subnet_extrusion.read())
 		# ipsec_conf.write("\tleftsubnet="+cloud_int_subnet+"\n")
 		# ipsec_conf.write("\tleftsourceip="+cloud_int_ip+"\n")
 		# ipsec_conf.write("\trightsubnet="+client_int_subnet+"\n")
@@ -449,10 +448,14 @@ def main():
 		ipsec_conf.close()
 
 if __name__ == '__main__':
-	#global crap
-	config_setup = "config setup\n"
-	conn_default = "conn %default\n"
-	conn_subnet_extrusion = "conn subnet-extrusion\n"
+	#global crap - hackishly using tmpfiles for now, because python can't pass by reference like a sane language
+	config_setup = os.tmpfile()
+	conn_default = os.tmpfile()
+	conn_subnet_extrusion = os.tmpfile()
+	
+	config_setup.write("config setup\n")
+	conn_default.write("conn %default\n")
+	conn_subnet_extrusion.write("conn subnet-extrusion\n")
 	main()
 	
 '''
