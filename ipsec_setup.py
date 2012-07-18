@@ -161,10 +161,7 @@ def main():
 	ipsec_config_file = "/etc/ipsec.conf"
 	rng_started = 0
 	pubkey = ""
-	
-	config_setup = "config setup\n"
-	conn_default = "conn %default\n"
-	conn_subnet_extrusion = "conn subnet-extrusion\n"
+
 	
 	parser = ConfigParser.RawConfigParser()
 	time = datetime.date.today()
@@ -397,7 +394,7 @@ def main():
 					
 				if parser.has_option('global','phase2algorithm'):
 					ipsec_phase2alg = parser.get('global','phase2algorithm')
-				else
+				else:
 					ipsec_phase2alg = "3des-sha1"
 				add_to_config(ipsec_phase2alg,"phase2alg",ipsec_ike)	
 					
@@ -452,6 +449,10 @@ def main():
 		ipsec_conf.close()
 
 if __name__ == '__main__':
+	#global crap
+	config_setup = "config setup\n"
+	conn_default = "conn %default\n"
+	conn_subnet_extrusion = "conn subnet-extrusion\n"
 	main()
 	
 '''
