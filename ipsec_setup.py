@@ -449,9 +449,9 @@ def main():
 
 if __name__ == '__main__':
 	#global crap - hackishly using tmpfiles for now, because python can't pass by reference like a sane language
-	config_setup = open('/tmp/config_setup')
-	conn_default = open('/tmp/conn_default')
-	conn_subnet_extrusion = open('/tmp/connf_subnet_extrusion')
+	config_setup = open('/tmp/config_setup','w')
+	conn_default = open('/tmp/conn_default','w')
+	conn_subnet_extrusion = open('/tmp/connf_subnet_extrusion','w')
 	
 	config_setup.write("config setup\n")
 	conn_default.write("conn %default\n")
