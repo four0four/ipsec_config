@@ -251,7 +251,7 @@ def main():
 				except ValueError:
 					print "[info]: " + interface + " is unavailable"
 		
-		add_to_config(config_setup,"interfaces",ipsec_interface)	
+		add_to_config(config_setup,"interfaces","\"ipsec0="+ipsec_interface+"\"")	
 			
 		if parser.has_option('global','version'):	
 			ipsec_version = parser.get('global','version')
