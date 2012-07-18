@@ -416,16 +416,16 @@ def main():
 		ipsec_conf.write("version "+ipsec_version+"\n")
 
 		config_setup.close()
-		config_setup.open('/tmp/config_setup','r')
+		config_setup = open('/tmp/config_setup','r')
 		ipsec_conf.write(config_setup.read()+"\n")
 
 		conn_default.close()
-		conn_default.open('/tmp/conn_default','r')
+		conn_default = open('/tmp/conn_default','r')
 		print conn_default.read()
 		ipsec_conf.write(conn_default.read())
 
 		conn_subnet_extrusion.close()
-		conn_subnet_extrusion.open('/tmp/conn_subnet_extrusion','r')
+		conn_subnet_extrusion = open('/tmp/conn_subnet_extrusion','r')
 		print conn_subnet_extrusion.read()
 		ipsec_conf.write(conn_subnet_extrusion.read())
 		
