@@ -6,6 +6,12 @@ import datetime
 import netifaces
 import subnetMath
 
+
+# Globals for config construction
+config_setup = ""
+conn_default = ""
+conn_subnet_extrusion = ""
+
 #add_to_* functions simply append passed information to the buffers
 #that are built independently for the creation of ipsec.conf
 def add_to_setup(option, value):
@@ -25,11 +31,6 @@ def add_to_subnet_extrusion(option, value):
 #note: some of this is redundant wrt to the initialization scripts, but this is intended more for reconfig
 #than initial, plus I wrote it first.
 def guide_human(newcfg):
-  # Globals for config construction
-  config_setup = ""
-  conn_default = ""
-  conn_subnet_extrusion = ""
-
   answer = ""
   
   newcfg.write("\n[local]\n")
