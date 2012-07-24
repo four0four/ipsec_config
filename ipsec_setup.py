@@ -13,6 +13,8 @@ def count_bits(int_type):
         count += 1
     return(count)
 
+#split a combined subnet mask/IP into a subnet mask and IP
+#ex: 1.2.3.4/16 -> 1.2.3.4, 255.255.0.0	
 def split_combined(subnet):
   netmask_bits = int(subnet.partition('/')[2])
   ip_octets = str(subnet.partition('/')[0]).split('.')
@@ -37,6 +39,8 @@ def split_combined(subnet):
   
   return(ip_octets,netmask)
 
+#Combines a subnet mask and IP into subnet notation WITH the mask applied
+#ex: 1.2.3.4, 255.255.0.0 -> 1.2.0.0/16 
 def subnet_from_netmask(netmask, ip):
   subnet = ""
   count = 0
@@ -61,6 +65,8 @@ def subnet_from_netmask(netmask, ip):
 
   return subnet
 
+#add_to_* functions simply append passed information to the buffers
+#that are built independently for the creation of ipsec.conf
 def add_to_setup(option, value):
   global config_setup
   config_setup += "\t"+option+"="+value+"\n"
@@ -73,6 +79,10 @@ def add_to_subnet_extrusion(option, value):
   global conn_subnet_extrusion
   conn_subnet_extrusion += "\t"+option+"="+value+"\n"
 
+#this following block of endless prompts, defaults, and parsing is intended to provide a relatively
+#sane and easy way for someone to enter the network information without touching the config files
+#note: some of this is redundant wrt to the initialization scripts, but this is intended more for reconfig
+#than initial, plus I wrote it first.
 def guide_human(newcfg):
   answer = ""
   
@@ -163,7 +173,8 @@ def guide_human(newcfg):
   newcfg.write("version = 2.0\nprotostack = klips\noe = disabled\nnat-traversal = disabled\ntype = tunnel\n")
   
   print "Your configuration is generated, but not parsed. Run the command again to set up ipsec with the selected options"
-  
+ 
+#Contains parsing, error handling, and general workings 
 def main():
   global config_setup
   global conn_default
@@ -303,7 +314,8 @@ def main():
         client_rsa_file = open(parser.get('global','clientkey-file'))
         client_rsa_key = client_rsa_file.readline()
         client_rsa_file.close()
-    
+	  #determine if we're low on entropy - if this is running on a normal VM w/o hardware entropy sources,
+	  #that's probably a yes
       if (cloud_rsa_key.lower() == "automatic" and current_target.lower() == "cloud") or (client_rsa_key.lower() == "automatic" and current_target.lower() == "client"):
         entropy_avail = open("/proc/sys/kernel/random/entropy_avail",'r')
         if int(entropy_avail.read()) < 800:
@@ -315,7 +327,9 @@ def main():
             print "Warning: Key generation (if required) may take a very long time"
             rng_started = 0
         entropy_avail.close()
-      
+      #automatic RSA key generation for cloud endpoint
+	  #Pretty explicit: uses the OS shell to call the ipsec new key function, 
+	  #displays the private key, and saves it in ipsec.conf
       if cloud_rsa_key.lower() == "automatic" and current_target.lower() == "cloud":
         print "\nGenerating new cloud RSA key..."
         os.system("ipsec newhostkey --output "+ipsec_secrets_file) 
@@ -374,7 +388,11 @@ def main():
       print ipsec_auth + " is not a valid method of authentication."
       quit()
       
-    #Cisco ASA endpoint support - Force allows encryption methods
+    #Cisco ASA endpoint support - Force allowed encryption methods
+	 #This could easily be refactored to allow further customization of the encryption methods
+	#for now, let's leave these as exclusive to ASA endpoint situations, as it's more secure
+	#to let openswan negotiate its own preferential methods.
+	#This could also easily be modified for future proprietary/third party endpoints, using the ASA as an example.
     if parser.has_option('cloud','cisco-asa'):
       if parser.get('cloud','cisco-asa').lower() == "yes":
         ipsec_auth = "psk" #force this
@@ -388,7 +406,7 @@ def main():
           ipsec_phase2alg = parser.get('global','phase2algorithm')
         else:
           ipsec_phase2alg = "3des-sha1"
-        add_to_default("phase2alg",ipsec_phase2alg)
+        add_to_default("phase2alg",ipsec_phase2alg)  
                     
         if parser.has_option('global','keylife'):
           ipsec_keylife = parser.get('global','keylife')
@@ -400,7 +418,7 @@ def main():
         add_to_default("pfs","no")
         add_to_default("keyexchange","ike")
         add_to_default("phase2","esp")
-        
+	#support for configuring a client with SHI hosting the ASA (unlikely, but portable)
     if parser.has_option('client','cisco-asa'):
       if parser.get('client','cisco-asa').lower() == "yes":
         ipsec_auth = "psk" #force this
@@ -414,7 +432,7 @@ def main():
           ipsec_phase2alg = parser.get('global','phase2algorithm')
         else:
           ipsec_phase2alg = "3des-sha1"
-        add_to_default("phase2alg",ipsec_phase2alg)
+        add_to_default("phase2alg",ipsec_phase2alg)  
           
         if parser.has_option('global','keylife'):
           ipsec_keylife = parser.get('global','keylife')
@@ -426,7 +444,7 @@ def main():
         add_to_default("pfs","no")
         add_to_default("keyexchange","ike")
         add_to_default("phase2","esp")
-    
+    #We want this tunnel to start automatically, always
     add_to_subnet_extrusion("auto","start")
     
     
