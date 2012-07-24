@@ -177,8 +177,8 @@ def main():
 
     cloud_ext_ip = parser.get('cloud','external-ip')
     #add what we've got to the config buffer
-    add_to_subnet_extrusion("leftsourceip","".join(map(str,cloudNet.toIPaddress())))  #ugh. new feature time for subnetMath.
-    add_to_subnet_extrusion("leftsubnet","".join(map(str,cloudNet.toSubnetZeroed()))) #openswan likes to have the insignificant bits zeroed in ipsec.conf
+    add_to_subnet_extrusion("leftsourceip",".".join(map(str,cloudNet.toIPaddress())))  #ugh. new feature time for subnetMath.
+    add_to_subnet_extrusion("leftsubnet",".".join(map(str,cloudNet.toSubnetZeroed()))) #openswan likes to have the insignificant bits zeroed in ipsec.conf
     add_to_subnet_extrusion("left",cloud_ext_ip)
     
     #client
