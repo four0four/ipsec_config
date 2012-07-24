@@ -9,21 +9,27 @@ import subnetMath
 #add_to_* functions simply append passed information to the buffers
 #that are built independently for the creation of ipsec.conf
 def add_to_setup(option, value):
-  config_setup += "\t"+option+"="+value+"\n"
+    global config_setup
+    config_setup += "\t"+option+"="+value+"\n"
 
 def add_to_default(option, value):
-  global conn_default
-  conn_default += "\t"+option+"="+value+"\n"
+    global conn_default
+    conn_default += "\t"+option+"="+value+"\n"
 
 def add_to_subnet_extrusion(option, value):
-  global conn_subnet_extrusion
-  conn_subnet_extrusion += "\t"+option+"="+value+"\n"
+    global conn_subnet_extrusion
+    conn_subnet_extrusion += "\t"+option+"="+value+"\n"
 
 #this following block of endless prompts, defaults, and parsing is intended to provide a relatively
 #sane and easy way for someone to enter the network information without touching the config files
 #note: some of this is redundant wrt to the initialization scripts, but this is intended more for reconfig
 #than initial, plus I wrote it first.
 def guide_human(newcfg):
+  # Globals for config construction
+  config_setup = ""
+  conn_default = ""
+  conn_subnet_extrusion = ""
+
   answer = ""
   
   newcfg.write("\n[local]\n")
@@ -399,11 +405,6 @@ def main():
     ipsec_conf.close()
     
 if __name__ == '__main__':
-  # Globals for config construction
-  config_setup = ""
-  conn_default = ""
-  conn_subnet_extrusion = ""
-
   main()
 
   
