@@ -4,71 +4,11 @@ import sys
 import os
 import datetime
 import netifaces
-
-#http://wiki.python.org/moin/BitManipulation
-def count_bits(int_type):
-    count = 0
-    while(int_type):
-        int_type &= int_type - 1
-        count += 1
-    return(count)
-
-#split a combined subnet mask/IP into a subnet mask and IP
-#ex: 1.2.3.4/16 -> 1.2.3.4, 255.255.0.0	
-def split_combined(subnet):
-  netmask_bits = int(subnet.partition('/')[2])
-  ip_octets = str(subnet.partition('/')[0]).split('.')
-  netmask = ['0','0','0','0']
-  trailing = netmask_bits % 8
-  filled_octets = netmask_bits/8
-  filled = 0
-  
-  for i in range(filled_octets-1,-1,-1):
-    tmp = 0
-    for j in range(7,-1,-1):
-      tmp |= (1<<j)
-      filled += 1
-    netmask[i] = tmp
-
-  if trailing != 0:
-    tmp = 0
-    partial_octet = (netmask_bits/8)
-    for i in range(7,7-(netmask_bits - filled),-1):
-      tmp |= (1<<i)
-    netmask[partial_octet] = tmp  
-  
-  return(ip_octets,netmask)
-
-#Combines a subnet mask and IP into subnet notation WITH the mask applied
-#ex: 1.2.3.4, 255.255.0.0 -> 1.2.0.0/16 
-def subnet_from_netmask(netmask, ip):
-  subnet = ""
-  count = 0
-  try:
-    netmask_octets = netmask.split('.')
-  except AttributeError: #already split (split_combined())
-    netmask_octets = netmask
-  
-  try:
-    ip_octets = ip.split('.')
-  except AttributeError: #ditto
-    ip_octets = ip
-
-  for octet in netmask_octets:
-    count += count_bits(int(octet))
-
-  for octet in range(len(ip_octets)-1):
-    subnet += (str(int(netmask_octets[octet]) & int(ip_octets[octet]))) + '.'
-
-  subnet += str(int(netmask_octets[3]) & int(ip_octets[3]))
-  subnet += '/' + str(count)
-
-  return subnet
+import subnetMath
 
 #add_to_* functions simply append passed information to the buffers
 #that are built independently for the creation of ipsec.conf
 def add_to_setup(option, value):
-  global config_setup
   config_setup += "\t"+option+"="+value+"\n"
 
 def add_to_default(option, value):
@@ -223,32 +163,27 @@ def main():
     current_target = parser.get('local','target')
 
     #cloud
-    cloud_int_ip = parser.get('cloud','internal-ip')
-    
-    try: #separate ip and netmask
-      cloud_int_nm = parser.get('cloud','internal-netmask')
-    except ConfigParser.NoOptionError: #a.b.c.d/xx
-      cloud_int_nm = ".".join(map(str,split_combined(cloud_int_ip)[1]))
-      cloud_int_ip = ".".join(map(str,split_combined(cloud_int_ip)[0]))
-    cloud_int_subnet = subnet_from_netmask(cloud_int_nm,cloud_int_ip)
+    if parser.has_option('cloud','internal-netmask'): #otherwise it's all combined
+        cloudNet = subnetMath.Subnet(parser.get('cloud','internal-ip'),parser.get('cloud','internal-netmask'))
+    else:
+        cloudNet = subnetMath.Subnet(parser.get('cloud','cloud_int_ip')        
+
     cloud_ext_ip = parser.get('cloud','external-ip')
     #add what we've got to the config buffer
-    add_to_subnet_extrusion("leftsourceip",cloud_int_ip)
-    add_to_subnet_extrusion("leftsubnet",cloud_int_subnet)
+    add_to_subnet_extrusion("leftsourceip",cloudNet.toIPaddress())
+    add_to_subnet_extrusion("leftsubnet",cloudNet.toSubnetZeroed()) #openswan likes to have the insignificant bits zeroed in ipsec.conf
     add_to_subnet_extrusion("left",cloud_ext_ip)
     
     #client
-    client_int_ip = parser.get('client','internal-ip')
-    try:
-      client_int_nm = parser.get('client','internal-netmask')
-    except ConfigParser.NoOptionError: #ip must be a.b.c.d/xx 
-      client_int_nm = ".".join(map(str,split_combined(client_int_ip)[1]))
-      client_int_ip = ".".join(map(str,split_combined(client_int_ip)[0]))
-    client_int_subnet = subnet_from_netmask(client_int_nm,client_int_ip)
-    client_ext_ip = parser.get('client','external-ip')
+    if parser.has_option('client','internal-netmask'): #same as above
+        clientNet = subnetMath.Subnet(parser.get('client','internal-ip'),parser.get('client','internal-netmask'))
+    else:
+        cloudNet = subnetMath.Subnet(praser.get('cloud','cloud-int-ip')
+
+    client_ext_ip = parser.get('client','external-ip') # can't guess this
     #add what we've got to the config buffer
-    add_to_subnet_extrusion("rightsourceip",client_int_ip)
-    add_to_subnet_extrusion("rightsubnet",client_int_subnet)
+    add_to_subnet_extrusion("rightsourceip",clientNet.toIPaddress())
+    add_to_subnet_extrusion("rightsubnet",clientNet.toSubnetZeroed())
     add_to_subnet_extrusion("right",client_ext_ip)
     
     #globals
@@ -389,7 +324,7 @@ def main():
       quit()
       
     #Cisco ASA endpoint support - Force allowed encryption methods
-	 #This could easily be refactored to allow further customization of the encryption methods
+    #This could easily be refactored to allow further customization of the encryption methods
 	#for now, let's leave these as exclusive to ASA endpoint situations, as it's more secure
 	#to let openswan negotiate its own preferential methods.
 	#This could also easily be modified for future proprietary/third party endpoints, using the ASA as an example.
