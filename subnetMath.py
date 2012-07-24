@@ -1,4 +1,3 @@
-
 #http://wiki.python.org/moin/BitManipulation
 def countBits(int_type):
     count = 0
@@ -11,7 +10,7 @@ class Subnet:
     #10.20.30.40/24, for example
     def __init__(self, subnet, netmask = None):
         if netmask != None: #w.x.y.z and nm
-            self.IP = subet.split('.') #should really rename it, plays two parts
+            self.IP = subnet.split('.') #should really rename it, plays two parts
             self.netmask = netmask.split('.')
             self.subnet = self.toSubnet() #only string
             self.broadcast = self.toBroadcast()
