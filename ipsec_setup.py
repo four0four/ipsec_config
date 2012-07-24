@@ -388,7 +388,7 @@ def main():
           ipsec_phase2alg = parser.get('global','phase2algorithm')
         else:
           ipsec_phase2alg = "3des-sha1"
-        add_to_config(ipsec_phase2alg,"phase2alg",ipsec_ike)  
+        add_to_default("phase2alg",ipsec_phase2alg)
                     
         if parser.has_option('global','keylife'):
           ipsec_keylife = parser.get('global','keylife')
@@ -414,7 +414,7 @@ def main():
           ipsec_phase2alg = parser.get('global','phase2algorithm')
         else:
           ipsec_phase2alg = "3des-sha1"
-        add_to_config(ipsec_phase2alg,"phase2alg",ipsec_ike)  
+        add_to_default("phase2alg",ipsec_phase2alg)
           
         if parser.has_option('global','keylife'):
           ipsec_keylife = parser.get('global','keylife')
