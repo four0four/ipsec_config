@@ -166,7 +166,7 @@ def main():
     if parser.has_option('cloud','internal-netmask'): #otherwise it's all combined
         cloudNet = subnetMath.Subnet(parser.get('cloud','internal-ip'),parser.get('cloud','internal-netmask'))
     else:
-        cloudNet = subnetMath.Subnet(parser.get('cloud','cloud_int_ip')        
+        cloudNet = subnetMath.Subnet(parser.get('cloud','cloud_int_ip'))        
 
     cloud_ext_ip = parser.get('cloud','external-ip')
     #add what we've got to the config buffer
