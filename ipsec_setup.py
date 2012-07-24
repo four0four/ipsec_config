@@ -170,8 +170,8 @@ def main():
 
     cloud_ext_ip = parser.get('cloud','external-ip')
     #add what we've got to the config buffer
-    add_to_subnet_extrusion("leftsourceip",cloudNet.toIPaddress())
-    add_to_subnet_extrusion("leftsubnet",cloudNet.toSubnetZeroed()) #openswan likes to have the insignificant bits zeroed in ipsec.conf
+    add_to_subnet_extrusion("leftsourceip","".join(map(str,cloudNet.toIPaddress())))  #ugh. new feature time for subnetMath.
+    add_to_subnet_extrusion("leftsubnet","".join(map(str,cloudNet.toSubnetZeroed()))) #openswan likes to have the insignificant bits zeroed in ipsec.conf
     add_to_subnet_extrusion("left",cloud_ext_ip)
     
     #client
@@ -182,8 +182,8 @@ def main():
 
     client_ext_ip = parser.get('client','external-ip') # can't guess this
     #add what we've got to the config buffer
-    add_to_subnet_extrusion("rightsourceip",clientNet.toIPaddress())
-    add_to_subnet_extrusion("rightsubnet",clientNet.toSubnetZeroed())
+    add_to_subnet_extrusion("rightsourceip","".join(map(str,clientNet.toIPaddress())))
+    add_to_subnet_extrusion("rightsubnet","".join(map(str,clientNet.toSubnetZeroed())))
     add_to_subnet_extrusion("right",client_ext_ip)
     
     #globals
