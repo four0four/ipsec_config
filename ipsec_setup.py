@@ -28,8 +28,9 @@ def add_to_subnet_extrusion(option, value):
 
 #this following block of endless prompts, defaults, and parsing is intended to provide a relatively
 #sane and easy way for someone to enter the network information without touching the config files
-#note: some of this is redundant wrt to the initialization scripts, but this is intended more for reconfig
+#note: some of this is redundant wrt to the (possibly removed) initialization scripts, but this is intended more for reconfig
 #than initial, plus I wrote it first.
+#This also assumes some defaults that are consistent over all standard configurations
 def guide_human(newcfg):
   answer = ""
   
@@ -112,14 +113,15 @@ def guide_human(newcfg):
       print "\t\tkey will be printed to screen and saved to file"
       newcfg.write("cloudkey = automatic\n")  
   else:
-    newcfg.write("authby=psk\n")
+    newcfg.write("authby = psk\n")
     answer = raw_input("\tPlease enter the Pre-Shared Key: ")
     newcfg.write("psk-secret = " + answer.rstrip("\n") + "\n")
-  print "\nFurther advanced options may be found in the generated config\n" 
+  print "\nFurther advanced options may be found in the generated config and/or documentation\n" 
   
   newcfg.write("version = 2.0\nprotostack = klips\noe = disabled\nnat-traversal = disabled\ntype = tunnel\n")
   
-  print "Your configuration is generated, but not parsed. Run the command again to set up ipsec with the selected options"
+  print "Your configuration is generated, but not parsed. Ensure the generated config is accurate, edit as needed,\n\
+  and run the command again to set up ipsec with the selected options"
  
 #Contains parsing, error handling, and general workings 
 def main():
@@ -157,7 +159,6 @@ def main():
     if answer.lower() != 'n':
       new_cfg = 1
     else:
-      print answer
       print "Bailing out."
       quit()
   if new_cfg == 1:
