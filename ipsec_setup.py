@@ -141,14 +141,22 @@ def main():
   parser = ConfigParser.RawConfigParser()
   time = datetime.date.today()
 
-  if len(sys.argv) > 2:
-    print "Usage: " + sys.argv[0] + " [config]"
-    return
-  elif len(sys.argv) < 2:
-    config_name = "config.cfg"
-  else:
-    config_name = sys.argv[1]
-  
+    if len(sys.argv) > 3:
+        print "Usage: " + sys.argv[0] + "(create) [config]"
+        quit()
+    elif len(sys.argv) < 2:
+        config_name = "config.cfg"
+    else:
+        if sys.argv[1].lower() == "create":
+            if len(sys.argv) < 3:
+                config_name = "config.cfg"
+            else:
+                config_name = sys.argv[2]
+            guide_human(config_name)
+            quit()
+        else:
+            config_name = sys.argv[1]
+
   try:
     with open(config_name) as f:
       print config_name+" found, loading...\n"
