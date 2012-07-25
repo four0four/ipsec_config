@@ -41,7 +41,18 @@ def guide_human(newcfg):
         newcfg.write("target = cloud\n")
     else:
         newcfg.write("target = client\n")
-    
+    while(answer.lower() != "y" and answer.lower() != "n"):
+        answer = raw_input("\nIs the other endpoint a Cisco ASA (Y/N)? ")
+    if answer.lower() == "y":
+        print "\tConfiguration will continue as normal, if you need to change something\n\
+        specific like the encryption methods, simply edit the generated \n\
+        configuration file\n"
+        print "If the defaults are unchanged, set the ASA to use the following:"
+        print "\tKey Life: 86400 seconds\n\tIKE Method: 3DES, SHA1 hashing, Group 2 Diffie-Hellman"
+        print "\tPhase 2 Algorithm: 3DES, SHA1 hashing. \n\tPFS: Off"
+        asa_endpoint = 1
+    else:
+        asa_endpoint = 0
     newcfg.write("\n[cloud]\n")
     print "\nPlease enter the cloud machine's internal IP and subnet or netmask."
     print "You may specify the internal IP and subnet/netmask in the form of (1) 1.1.1.1/24 or (2) 1.1.1.1 and 255.255.255.0"
@@ -79,7 +90,9 @@ def guide_human(newcfg):
     newcfg.write("external-ip = " + answer + "\n")
     
     newcfg.write("\n[global]\n")
-    answer = raw_input("How do you want to specify the IPsec network interface? (AUTOMATIC/manual): ")
+    if asa_endpoint == 1:
+        newcfg.write("#ASA Compat.\nike = 3des-sha1-modp1024\nphase2algorithm = 3des-sha1\nkeylife = 86400s\n#End ASA compat.\n")
+    answer = raw_input("\nHow do you want to specify the IPsec network interface? (AUTOMATIC/manual): ")
     if answer.lower() == "manual":
         answer = raw_input("\tEnter the network device for the IPsec interface: ")
         newcfg.write("ipsec-interface = " + answer+"\n")
@@ -120,8 +133,7 @@ def guide_human(newcfg):
     
     newcfg.write("version = 2.0\nprotostack = klips\noe = disabled\nnat-traversal = disabled\ntype = tunnel\n")
     
-    print "Your configuration is generated, but not parsed. Ensure the generated config is accurate, edit as needed,\n\
-    and run the command again to set up ipsec with the selected options"
+    print "Your configuration is generated, but not parsed. Ensure the generated config is accurate, edit as needed, and run the command again to set up ipsec with the selected options"
   
 #Contains parsing, error handling, and general workings 
 def main():
