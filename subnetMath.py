@@ -10,31 +10,44 @@ class Subnet:
     #10.20.30.40/24, for example
     def __init__(self, subnet, netmask = None):
         if netmask != None: #w.x.y.z and nm
-            self.IP = subnet #should really rename it, plays two parts
-            self.netmask = netmask
-            self.subnet = self.toSubnet() 
+            self.IP = subnet.split('.') #should really rename it, plays two parts
+            self.netmask = netmask.split('.')
+            self.subnet = self.toSubnet() #only string
             self.broadcast = self.toBroadcast()
         else: #w.x.y.z/bits or about to throw an error
             self.subnet = subnet #only string
             self.IP = self.toIPaddress()
-            self.netmask = self.splitCombined()[3]
+            self.netmask = self.splitCombined()[2]
             self.broadcast = self.toBroadcast()
 
+    #All of these return strings, and are intended for external consumption
+    def ipString(self):     #naming this sucks
+        return ".".join(map(str,self.IP))
+    def netmaskString(self):
+        return ".".join(map(str,self.netmask))
+    def broadcastString(self):
+        return ".".join(map(str,self.broadcast))
+    def subnetString(self):
+        return self.toSubnet() #just for symmetry
+    def subnetZeroedString(self):
+        return self.toSubnetZeroed()
+
+    #All of these return list elements, except for the subnet
     def toIPaddress(self):
-        self.IP = self.subnet.partition('/')[0]
+        self.IP = self.subnet.partition('/')[0].split('.')
         return self.IP
 
     def toNetmask(self):
-        self.netmask = self.splitCombined()[3]
+        self.netmask = self.splitCombined()[2]
         return self.netmask
 
     def toBroadcast(self):
         self.broadcast = ['0','0','0','0']
-        netmask_octets = self.netmask.split('.')
-        ip_octets = self.IP.split('.')
+        netmask_octets = self.netmask
+        ip_octets = self.IP
         for octet in range(4):
             self.broadcast[octet] = ((~int(netmask_octets[octet])) & 0xFF) | int(ip_octets[octet])
-        return ".".join(map(str,self.broadcast))
+        return self.broadcast
 
     def splitCombined(self):
         netmask_bits = int(self.subnet.partition('/')[2])
@@ -57,32 +70,27 @@ class Subnet:
             for i in range(7,7-(netmask_bits - filled),-1):
                 tmp |= (1<<i)
             netmask_octets[partial_octet] = tmp
-        netmask = ".".join(map(str,netmask_octets))
         return(ip_string,ip_octets,netmask_octets,netmask)
 
     def toSubnetZeroed(self):
         subnet = ""
         count = 0
-        netmask_octets = self.netmask.split('.')
-        ip_octets = self.IP.split('.')
-        for octet in netmask_octets:
+        for octet in self.netmask:
             count += countBits(int(octet))
-        for octet in range(len(ip_octets)-1):
-            subnet += (str(int(ip_octets[octet]) & int(netmask_octets[octet]))) + '.'
-        subnet += str(int(ip_octets[len(ip_octets)-1]) & int(netmask_octets[len(netmask_octets)-1]))
+        for octet in range(len(self.IP)-1):
+            subnet += (str(int(self.IP[octet]) & int(self.netmask[octet]))) + '.'
+        subnet += str(int(self.IP[len(self.IP)-1]) & int(self.netmask[len(self.netmask)-1]))
         subnet += '/' + str(count)
         return subnet
 
     def toSubnet(self):
         subnet = ""
         count = 0
-        netmask_octets = self.netmask.split('.')
-        ip_octets = self.IP.split('.')
-        for octet in netmask_octets:
+        for octet in self.netmask:
             count += countBits(int(octet))
-        for octet in range(len(ip_octets) - 1):
+        for octet in range(len(self.IP)-1):
             subnet += str(self.IP[octet]) + '.'
-        subnet += str(ip_octets[len(ip_octets)-1])
+        subnet += str(self.IP[len(self.IP)-1])
         subnet += '/' + str(count)
         return subnet
 
