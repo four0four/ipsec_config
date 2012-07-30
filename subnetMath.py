@@ -62,22 +62,26 @@ class Subnet:
     def toSubnetZeroed(self):
         subnet = ""
         count = 0
-        for octet in self.netmask:
+        netmask_octets = self.netmask.split('.')
+        ip_octets = self.IP.split('.')
+        for octet in netmask_octets:
             count += countBits(int(octet))
-        for octet in range(len(self.IP)-1):
-            subnet += (str(int(self.IP[octet]) & int(self.netmask[octet]))) + '.'
-        subnet += str(int(self.IP[len(self.IP)-1]) & int(self.netmask[len(self.netmask)-1]))
+        for octet in range(len(ip_octets)-1):
+            subnet += (str(int(ip_octets[octet]) & int(netmask_octets[octet]))) + '.'
+        subnet += str(int(ip_octets[len(ip_octets)-1]) & int(netmask_octets[len(netmask_octets)-1]))
         subnet += '/' + str(count)
         return subnet
 
     def toSubnet(self):
         subnet = ""
         count = 0
-        for octet in self.netmask:
+        netmask_octets = self.netmask.split('.')
+        ip_octets = self.IP.split('.')
+        for octet in netmask_octets:
             count += countBits(int(octet))
-        for octet in range(len(self.IP)-1):
+        for octet in range(len(ip_octets]) - 1):
             subnet += str(self.IP[octet]) + '.'
-        subnet += str(self.IP[len(self.IP)-1])
+        subnet += str(ip_octets[len(ip_octets)-1])
         subnet += '/' + str(count)
         return subnet
 
