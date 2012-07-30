@@ -10,22 +10,22 @@ class Subnet:
     #10.20.30.40/24, for example
     def __init__(self, subnet, netmask = None):
         if netmask != None: #w.x.y.z and nm
-            self.IP = subnet.split('.') #should really rename it, plays two parts
-            self.netmask = netmask.split('.')
-            self.subnet = self.toSubnet() #only string
+            self.IP = subnet #should really rename it, plays two parts
+            self.netmask = netmask
+            self.subnet = self.toSubnet() 
             self.broadcast = self.toBroadcast()
         else: #w.x.y.z/bits or about to throw an error
             self.subnet = subnet #only string
             self.IP = self.toIPaddress()
-            self.netmask = self.splitCombined()[2]
+            self.netmask = self.splitCombined()[3]
             self.broadcast = self.toBroadcast()
 
     def toIPaddress(self):
-        self.IP = self.subnet.partition('/')[0].split('.')
+        self.IP = self.subnet.partition('/')[0]
         return self.IP
 
     def toNetmask(self):
-        self.netmask = self.splitCombined()[2]
+        self.netmask = self.splitCombined()[3]
         return self.netmask
 
     def toBroadcast(self):
@@ -34,7 +34,7 @@ class Subnet:
         ip_octets = self.IP
         for octet in range(4):
             self.broadcast[octet] = ((~int(netmask_octets[octet])) & 0xFF) | int(ip_octets[octet])
-        return self.broadcast
+        return ".".join(map(str,self.broadcast))
 
     def splitCombined(self):
         netmask_bits = int(self.subnet.partition('/')[2])
