@@ -427,10 +427,3 @@ def main():
         
 if __name__ == '__main__':
     main()
-
-    
-'''
-TODO:
-    Compute and save routes (debian stores peresistent routes in /etc/network/interfaces
-        Likewise - When running on the cloud machine, dump a client cfg?
-'''
